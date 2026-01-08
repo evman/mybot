@@ -1,0 +1,47 @@
+services:
+  gluetun:
+    image: qmcgaw/gluetun
+    container_name: gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      - VPN_SERVICE_PROVIDER=mullvad
+      - VPN_TYPE=wireguard
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
+      - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES}
+      - SERVER_CITIES=Zurich
+    ports:
+      - "2333:2333"
+    restart: unless-stopped
+
+  lavalink:
+    image: ghcr.io/lavalink-devs/lavalink:4
+    container_name: lavalink
+    network_mode: "service:gluetun"
+    volumes:
+      - ./lavalink/application.yml:/opt/Lavalink/application.yml
+    environment:
+      - _JAVA_OPTIONS=-Xmx512M
+    depends_on:
+      - gluetun
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "--header=Authorization: youshallnotpass", "http://localhost:2333/version"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  bot:
+    build: .
+    container_name: musicbot
+    depends_on:
+      lavalink:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - LAVALINK_HOST=gluetun
+    restart: unless-stopped
+    stop_grace_period: 5s

@@ -1,0 +1,28 @@
+# Environment variables (contains secrets)
+.env
+
+# Node
+node_modules/
+dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Archives
+*.zip
+*.tar.gz
+
+# Lavalink artifacts
+*.jar
+/lavalink/plugins/
