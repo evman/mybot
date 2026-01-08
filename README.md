@@ -1,227 +1,302 @@
 # Discord Music Bot
 
-A self-hosted Discord music bot that streams audio from YouTube using Lavalink. Built for personal/private use.
+A self-hosted Discord bot that plays music from YouTube in voice channels.
 
-## Features
+> **Important:** This bot is for **personal/private use only**. See [Disclaimer](#disclaimer) at the bottom.
 
-- Play music from YouTube URLs or search queries
-- Queue management with skip, pause, resume, and stop
-- Volume control (1-100%)
-- Playlist support
-- VPN integration for reliable playback on datacenter IPs
+---
 
-## Architecture
+## Requirements
 
-```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   Discord.js    │────▶│    Lavalink     │────▶│     gluetun     │
-│   Bot (Node)    │     │  (Audio Server) │     │   (VPN Client)  │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-        │                        │                       │
-   Slash Commands          Audio Streaming          VPN Tunnel
-   Queue Management        YouTube Plugin           (Mullvad)
-```
+Before you start, you need:
 
-**Components:**
-- **Bot** - Discord.js v14 + Shoukaku (Lavalink client)
-- **Lavalink** - High-performance audio streaming server with YouTube plugin
-- **gluetun** - VPN container (routes Lavalink traffic through VPN)
+1. **Docker Desktop** (or Docker + Docker Compose on Linux)
+   - Windows/Mac: Download from [docker.com/products/docker-desktop](https://www.docker.com/products/docker-desktop/)
+   - Linux: Install Docker Engine and Docker Compose
 
-## Prerequisites
+2. **A Discord Bot Token**
+   - You'll create this in the setup steps below
 
-- Docker and Docker Compose
-- Discord Bot Token ([create one here](https://discord.com/developers/applications))
-- VPN subscription with WireGuard support (e.g., [Mullvad](https://mullvad.net))
+3. **A VPN subscription with WireGuard support**
+   - Recommended: [Mullvad VPN](https://mullvad.net) (~$5/month)
+   - Why? YouTube blocks datacenter IPs. The VPN makes it work.
 
-## Quick Start
+---
 
-### 1. Clone the repository
+## Setup Guide
+
+### Step 1: Download the bot
 
 ```bash
 git clone https://github.com/evman/mybot.git
 cd mybot
 ```
 
-### 2. Configure environment
+Or download as ZIP from GitHub and extract it.
 
-```bash
-cp .env.example .env
-```
+---
 
-Edit `.env` with your credentials:
+### Step 2: Create a Discord Bot
 
-```env
-DISCORD_TOKEN=your_discord_bot_token
-DISCORD_CLIENT_ID=your_discord_client_id
-WIREGUARD_PRIVATE_KEY=your_wireguard_private_key
-```
+1. Go to [discord.com/developers/applications](https://discord.com/developers/applications)
+2. Click **"New Application"**
+3. Give it a name (e.g., "Music Bot") and click **Create**
+4. Go to the **"Bot"** tab on the left
+5. Click **"Reset Token"** and copy the token - **save this somewhere safe!**
+6. Scroll down and enable these settings:
+   - **Presence Intent** - OFF (not needed)
+   - **Server Members Intent** - OFF (not needed)
+   - **Message Content Intent** - OFF (not needed)
 
-### 3. Configure VPN (gluetun)
+**Copy these two things:**
+- **Token** - from the Bot tab (looks like `MTQ1ODA2MzkyNTQ3MDk1NzY3Nw.GRDYt9.xxxxx`)
+- **Application ID** - from the General Information tab (a number like `1458063925470957677`)
 
-Edit `docker-compose.yml` and update the gluetun environment variables for your VPN provider:
+---
 
-```yaml
-environment:
-  - VPN_SERVICE_PROVIDER=mullvad  # Your VPN provider
-  - VPN_TYPE=wireguard
-  - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY}
-  - WIREGUARD_ADDRESSES=10.x.x.x/32  # From your WireGuard config
-  - SERVER_CITIES=Zurich  # Your preferred server location
-```
+### Step 3: Get VPN credentials
 
-See [gluetun documentation](https://github.com/qdm12/gluetun-wiki) for other VPN providers.
+**For Mullvad (recommended):**
 
-### 4. Start the bot
+1. Go to [mullvad.net](https://mullvad.net) and create an account
+2. Go to [mullvad.net/en/account/wireguard-config](https://mullvad.net/en/account/wireguard-config)
+3. Generate a WireGuard configuration
+4. Download the config file and open it in a text editor
+5. You need these two values:
+   - **PrivateKey** - looks like `AL/uVnzW+omjg/tBRMp42SRjvAHiagEMcFimOMIeeV4=`
+   - **Address** - looks like `10.64.216.95/32`
+
+---
+
+### Step 4: Create your config file
+
+1. Copy the example config:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Open `.env` in a text editor (Notepad, VS Code, nano, etc.)
+
+3. Replace the placeholder values with your actual values:
+
+   ```env
+   # Paste your Discord bot token here
+   DISCORD_TOKEN=MTQ1ODA2MzkyNTQ3MDk1NzY3Nw.GRDYt9.xxxxx
+
+   # Paste your Discord Application ID here
+   DISCORD_CLIENT_ID=1458063925470957677
+
+   # Leave these as-is
+   LAVALINK_HOST=localhost
+   LAVALINK_PORT=2333
+   LAVALINK_PASSWORD=youshallnotpass
+
+   # Paste your WireGuard PrivateKey here
+   WIREGUARD_PRIVATE_KEY=AL/uVnzW+omjg/tBRMp42SRjvAHiagEMcFimOMIeeV4=
+
+   # Paste your WireGuard Address here
+   WIREGUARD_ADDRESSES=10.64.216.95/32
+   ```
+
+4. Save the file
+
+---
+
+### Step 5: Start the bot
+
+Open a terminal in the bot folder and run:
 
 ```bash
 docker compose up -d
 ```
 
-### 5. Invite the bot to your server
+**First time will take a few minutes** - it's downloading everything it needs.
 
-Use this URL (replace `YOUR_CLIENT_ID`):
-```
-https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=3145728&scope=bot%20applications.commands
+To check if it's running:
+```bash
+docker compose ps
 ```
 
-Required permissions:
-- Connect (to voice channels)
-- Speak (to play audio)
+You should see three containers all showing "Up" or "healthy":
+- `gluetun` - the VPN
+- `lavalink` - the audio server
+- `musicbot` - the bot itself
+
+---
+
+### Step 6: Invite the bot to your Discord server
+
+1. Go to [discord.com/developers/applications](https://discord.com/developers/applications)
+2. Click on your application
+3. Go to **"OAuth2"** > **"URL Generator"**
+4. Under **Scopes**, check:
+   - `bot`
+   - `applications.commands`
+5. Under **Bot Permissions**, check:
+   - `Connect`
+   - `Speak`
+6. Copy the generated URL at the bottom
+7. Open the URL in your browser and select your server
+
+---
+
+### Step 7: Use the bot!
+
+1. Join a voice channel in your Discord server
+2. Type `/play` followed by a song name or YouTube URL
+3. The bot will join and start playing!
+
+---
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `/play <query>` | Play a YouTube URL or search for a song |
-| `/skip` | Skip the current track |
-| `/stop` | Stop playback and clear the queue |
-| `/queue` | Show the current queue |
-| `/pause` | Pause playback |
-| `/resume` | Resume playback |
-| `/volume <1-100>` | Set playback volume |
+| Command | What it does |
+|---------|--------------|
+| `/play <song>` | Play a song (YouTube URL or search) |
+| `/skip` | Skip to the next song |
+| `/stop` | Stop playing and leave the channel |
+| `/queue` | Show what's coming up next |
+| `/pause` | Pause the music |
+| `/resume` | Unpause the music |
+| `/volume <1-100>` | Change the volume |
 
-## Project Structure
+---
 
-```
-musicbot/
-├── docker-compose.yml      # Docker services configuration
-├── Dockerfile              # Bot container build
-├── .env.example            # Environment template
-├── package.json
-├── tsconfig.json
-├── src/
-│   ├── index.ts            # Bot entry point
-│   ├── config.ts           # Environment configuration
-│   ├── commands/
-│   │   ├── index.ts        # Command handler
-│   │   ├── play.ts         # /play command
-│   │   ├── skip.ts         # /skip command
-│   │   ├── stop.ts         # /stop command
-│   │   ├── queue.ts        # /queue command
-│   │   ├── pause.ts        # /pause command
-│   │   ├── resume.ts       # /resume command
-│   │   └── volume.ts       # /volume command
-│   └── music/
-│       ├── manager.ts      # Shoukaku/Lavalink setup
-│       └── player.ts       # Queue management
-└── lavalink/
-    └── application.yml     # Lavalink configuration
+## Common Problems
+
+### "No Lavalink nodes available"
+
+The audio server isn't ready yet. Wait 30 seconds and try again.
+
+Check if it's running:
+```bash
+docker compose ps
 ```
 
-## Configuration
+If `lavalink` shows "unhealthy", check the logs:
+```bash
+docker compose logs lavalink
+```
 
-### Lavalink (`lavalink/application.yml`)
+---
 
-The YouTube plugin is configured with multiple client fallbacks and a remote cipher server for reliability:
+### "No results found"
+
+The VPN might not be connected. Check gluetun:
+```bash
+docker compose logs gluetun
+```
+
+Look for a line that says "Healthy!" or shows an IP address.
+
+If you see errors about authentication, double-check your WireGuard credentials in `.env`.
+
+---
+
+### Bot doesn't respond to commands
+
+1. Make sure the bot is online in Discord (should show in member list)
+2. Try kicking the bot and re-inviting it
+3. Check the bot logs:
+   ```bash
+   docker compose logs bot
+   ```
+
+---
+
+### Music stops randomly or sounds bad
+
+The VPN connection might be unstable. Try changing the server location in `docker-compose.yml`:
 
 ```yaml
-plugins:
-  youtube:
-    enabled: true
-    allowSearch: true
-    allowDirectVideoIds: true
-    allowDirectPlaylistIds: true
-    clients:
-      - MUSIC
-      - WEB
-      - TV
-      - IOS
-    remoteCipher:
-      url: "https://cipher.kikkia.dev/"
+- SERVER_CITIES=Zurich  # Change this to another city
 ```
 
-### Why VPN?
+Then restart:
+```bash
+docker compose down
+docker compose up -d
+```
 
-YouTube blocks or rate-limits requests from datacenter IP addresses. The gluetun container routes Lavalink's traffic through a VPN (residential IP), allowing reliable playback.
-
-The bot container itself does NOT go through the VPN - only Lavalink does. This is achieved through Docker's `network_mode: "service:gluetun"`.
+---
 
 ## Useful Commands
 
 ```bash
-# View logs
-docker compose logs -f bot        # Bot logs
-docker compose logs -f lavalink   # Lavalink logs
-docker compose logs -f gluetun    # VPN logs
+# Start the bot
+docker compose up -d
 
-# Restart services
-docker compose restart bot
-docker compose restart lavalink
-
-# Rebuild after code changes
-docker compose up -d --build
-
-# Stop everything
+# Stop the bot
 docker compose down
 
-# Check container status
+# Restart everything
+docker compose restart
+
+# See what's running
 docker compose ps
 
-# Test Lavalink API directly
-curl -s "http://localhost:2333/v4/loadtracks?identifier=ytsearch:test" \
-  -H "Authorization: youshallnotpass"
+# View logs (all)
+docker compose logs
+
+# View bot logs only
+docker compose logs bot
+
+# View logs in real-time (press Ctrl+C to stop)
+docker compose logs -f
+
+# Rebuild after making code changes
+docker compose up -d --build
 ```
 
-## Troubleshooting
+---
 
-### "No Lavalink nodes available"
-- Wait for Lavalink to fully start (check `docker compose logs lavalink`)
-- The bot waits for Lavalink's healthcheck before starting
+## Updating the Bot
 
-### "No results found"
-- Check if gluetun is connected: `docker compose logs gluetun | grep -i "ip\|connected"`
-- Verify VPN credentials in `.env`
+```bash
+git pull
+docker compose up -d --build
+```
 
-### "This video is unavailable"
-- The remote cipher server may be temporarily down
-- Try a different video
-- Check Lavalink logs for specific errors
+---
 
-### Audio cuts out or is choppy
-- Increase Lavalink memory: change `-Xmx512M` to `-Xmx1G` in docker-compose.yml
-- Check VPN connection stability
+## File Structure
 
-### Bot not responding to commands
-- Ensure slash commands are registered: `docker compose logs bot | grep -i "command"`
-- Try kicking and re-inviting the bot
+```
+mybot/
+├── .env                 # YOUR SECRETS - never share this!
+├── .env.example         # Template for .env
+├── docker-compose.yml   # Docker configuration
+├── Dockerfile           # How to build the bot
+├── package.json         # Node.js dependencies
+├── lavalink/
+│   └── application.yml  # Audio server config
+└── src/                 # Bot source code
+    ├── index.ts
+    ├── config.ts
+    ├── commands/
+    └── music/
+```
 
-## Tech Stack
+---
 
-- [Node.js](https://nodejs.org/) + [TypeScript](https://www.typescriptlang.org/)
-- [Discord.js v14](https://discord.js.org/) - Discord API wrapper
-- [Shoukaku v4](https://github.com/shipgirlproject/Shoukaku) - Lavalink client
-- [Lavalink v4](https://github.com/lavalink-devs/Lavalink) - Audio streaming server
-- [youtube-source](https://github.com/lavalink-devs/youtube-source) - YouTube plugin for Lavalink
-- [gluetun](https://github.com/qdm12/gluetun) - VPN client container
+## Changing VPN Provider
+
+The bot uses [gluetun](https://github.com/qdm12/gluetun) which supports many VPN providers.
+
+Edit `docker-compose.yml` and change the gluetun environment section. See the [gluetun wiki](https://github.com/qdm12/gluetun-wiki) for your provider's settings.
+
+---
 
 ## Disclaimer
 
-This bot is intended for **personal, private use only**.
+**This bot is for personal, private use only.**
 
-Streaming content from YouTube may violate their Terms of Service. The developers of this project are not responsible for any misuse or any violations of third-party terms of service. Use at your own risk and discretion.
+Streaming audio from YouTube may violate their Terms of Service. By using this software, you accept full responsibility for how you use it. The developers are not responsible for any misuse or violations of third-party terms of service.
 
 This project is not affiliated with Discord, YouTube, Google, or any VPN provider.
 
+---
+
 ## License
 
-MIT
+MIT - Do whatever you want with it.
