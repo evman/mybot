@@ -117,9 +117,10 @@ To check if it's running:
 docker compose ps
 ```
 
-You should see three containers all showing "Up" or "healthy":
+You should see four containers all showing "Up" or "healthy":
 - `gluetun` - the VPN
 - `lavalink` - the audio server
+- `lavalink-updater` - auto-updates the YouTube plugin
 - `musicbot` - the bot itself
 
 ---
@@ -270,12 +271,34 @@ mybot/
 ├── package.json         # Node.js dependencies
 ├── lavalink/
 │   └── application.yml  # Audio server config
+├── updater/             # Auto-update container
+│   ├── Dockerfile
+│   └── check-update.sh
 └── src/                 # Bot source code
     ├── index.ts
     ├── config.ts
     ├── commands/
     └── music/
 ```
+
+---
+
+## Automatic YouTube Plugin Updates
+
+YouTube frequently changes their systems, which can break playback. This bot includes an **automatic updater** that:
+
+- Checks for new youtube-plugin versions every hour
+- Automatically updates the config when a new version is found
+- Restarts Lavalink to apply the update (causes ~10 second interruption)
+
+**Check updater logs:**
+```bash
+docker compose logs updater
+```
+
+**Disable auto-updates** (if you want manual control):
+
+Remove or comment out the `updater` service in `docker-compose.yml`.
 
 ---
 
