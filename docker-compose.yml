@@ -45,3 +45,11 @@ services:
       - LAVALINK_HOST=gluetun
     restart: unless-stopped
     stop_grace_period: 5s
+
+  updater:
+    build: ./updater
+    container_name: lavalink-updater
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./lavalink/application.yml:/config/application.yml
+    restart: unless-stopped
